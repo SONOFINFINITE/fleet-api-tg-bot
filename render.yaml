@@ -9,14 +9,12 @@ services:
         sync: false
       - key: PORT
         value: 3000
+      - key: NODE_ENV
+        value: production
       - key: RENDER_EXTERNAL_URL
         fromService:
           type: web
           name: fleet-api-bot
           property: url
-    disk:
-      name: data
-      mountPath: /data
-      sizeGB: 1
     healthCheckPath: /health
     plan: free 

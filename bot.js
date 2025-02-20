@@ -80,20 +80,38 @@ moment.locale('ru');
 log('Установлена русская локализация');
 
 // Путь к файлу с подписчиками
-const subscribersPath = path.join(process.env.DATA_DIR || '/data', 'subscribers.json');
+const DATA_DIR = process.env.NODE_ENV === 'production' 
+    ? '/opt/render/project/src/data'  // Путь на Render.com
+    : path.join(__dirname, 'data');    // Локальный путь
+
+const subscribersPath = path.join(DATA_DIR, 'subscribers.json');
 log(`Путь к файлу подписчиков: ${subscribersPath}`);
 
 // Создаем директорию для данных, если её нет
-const dataDir = path.dirname(subscribersPath);
-if (!fs.existsSync(dataDir)) {
-    log(`Создание директории для данных: ${dataDir}`);
-    fs.mkdirSync(dataDir, { recursive: true });
+if (!fs.existsSync(DATA_DIR)) {
+    log(`Создание директории для данных: ${DATA_DIR}`);
+    try {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        log('Директория успешно создана');
+    } catch (error) {
+        log(`Ошибка при создании директории: ${error.message}`, true);
+        // Попробуем использовать временную директорию
+        const tempDir = require('os').tmpdir();
+        DATA_DIR = path.join(tempDir, 'fleet-bot-data');
+        log(`Пробуем использовать временную директорию: ${DATA_DIR}`);
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
 }
 
 // Создаем файл subscribers.json, если его нет
 if (!fs.existsSync(subscribersPath)) {
     log('Создание файла subscribers.json');
-    fs.writeFileSync(subscribersPath, JSON.stringify({ subscribers: [] }, null, 2));
+    try {
+        fs.writeFileSync(subscribersPath, JSON.stringify({ subscribers: [] }, null, 2));
+        log('Файл subscribers.json успешно создан');
+    } catch (error) {
+        log(`Ошибка при создании файла: ${error.message}`, true);
+    }
 }
 
 // Функция для чтения списка подписчиков
