@@ -62,10 +62,25 @@ const subscribedKeyboard = new Keyboard()
 async function fetchTopDrivers(endpoint) {
     try {
         const response = await fetch(`https://fleet-api-server.onrender.com/top/money/${endpoint}`);
-        const data = await response.json();
-        return data;
+        
+        // Проверяем статус ответа
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Получаем текст ответа для логирования в случае ошибки
+        const text = await response.text();
+        
+        try {
+            // Пытаемся распарсить JSON
+            const data = JSON.parse(text);
+            return data;
+        } catch (e) {
+            console.error('Ошибка парсинга JSON. Ответ сервера:', text);
+            return null;
+        }
     } catch (error) {
-        console.error('Ошибка при получении данных:', error);
+        console.error(`Ошибка при получении данных для ${endpoint}:`, error.message);
         return null;
     }
 }
@@ -135,15 +150,22 @@ bot.command('start', async (ctx) => {
 
 // Обработчик кнопки статистики за сегодня
 bot.hears('📊 Статистика за сегодня', async (ctx) => {
-    const data = await fetchTopDrivers('today');
-    if (data) {
-        const message = formatMessage(data);
-        await ctx.reply(message, { 
-            parse_mode: 'Markdown',
-            reply_markup: subscribedKeyboard
-        });
-    } else {
-        await ctx.reply('Извините, не удалось получить статистику. Попробуйте позже.', {
+    try {
+        const data = await fetchTopDrivers('today');
+        if (data) {
+            const message = formatMessage(data);
+            await ctx.reply(message, { 
+                parse_mode: 'Markdown',
+                reply_markup: subscribedKeyboard
+            });
+        } else {
+            await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.', {
+                reply_markup: subscribedKeyboard
+            });
+        }
+    } catch (error) {
+        console.error('Ошибка при обработке запроса статистики:', error);
+        await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.', {
             reply_markup: subscribedKeyboard
         });
     }
@@ -151,15 +173,22 @@ bot.hears('📊 Статистика за сегодня', async (ctx) => {
 
 // Обработчик кнопки статистики за вчера
 bot.hears('📈 Статистика за вчера', async (ctx) => {
-    const data = await fetchTopDrivers('yesterday');
-    if (data) {
-        const message = formatMessage(data, true);
-        await ctx.reply(message, { 
-            parse_mode: 'Markdown',
-            reply_markup: subscribedKeyboard
-        });
-    } else {
-        await ctx.reply('Извините, не удалось получить статистику. Попробуйте позже.', {
+    try {
+        const data = await fetchTopDrivers('yesterday');
+        if (data) {
+            const message = formatMessage(data, true);
+            await ctx.reply(message, { 
+                parse_mode: 'Markdown',
+                reply_markup: subscribedKeyboard
+            });
+        } else {
+            await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.', {
+                reply_markup: subscribedKeyboard
+            });
+        }
+    } catch (error) {
+        console.error('Ошибка при обработке запроса статистики:', error);
+        await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.', {
             reply_markup: subscribedKeyboard
         });
     }
