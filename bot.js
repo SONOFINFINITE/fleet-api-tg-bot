@@ -5,6 +5,21 @@ const fetch = require('node-fetch');
 const moment = require('moment-timezone');
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
+
+// Создаем Express приложение
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Добавляем простой эндпоинт для проверки работоспособности
+app.get('/', (req, res) => {
+    res.send('Бот работает!');
+});
+
+// Запускаем веб-сервер
+app.listen(port, () => {
+    console.log(`Веб-сервер запущен на порту ${port}`);
+});
 
 // Установка русской локализации
 moment.locale('ru');
