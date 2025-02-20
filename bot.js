@@ -219,53 +219,30 @@ async function sendStatistics() {
     }
 }
 
-// Настройка расписания (время МСК)
-process.env.TZ = 'Europe/Moscow';
+// Настройка расписания (время UTC для соответствия МСК)
+const schedules = [
+    '05 5 * * *',  // 08:05 MSK
+    '00 9 * * *',  // 12:00 MSK
+    '15 15 * * *', // 18:15 MSK (тестовое время)
+    '00 17 * * *', // 20:00 MSK
+    '55 20 * * *'  // 23:55 MSK
+];
 
-// Функция для проверки времени отправки
-function shouldSendStatistics() {
-    const now = moment().tz('Europe/Moscow');
-    const currentHour = now.hour();
-    const currentMinute = now.minute();
-
-    // Массив времени отправки [час, минута]
-    const schedules = [
-        [8, 0],   // 08:00
-        [12, 0],  // 12:00
-        [18, 5],  // 18:00
-        [20, 0],  // 20:00
-        [23, 55]  // 23:55
-    ];
-
-    // Проверяем, совпадает ли текущее время с одним из запланированных
-    return schedules.some(([hour, minute]) => 
-        currentHour === hour && currentMinute === minute
-    );
-}
-
-// Функция проверки и отправки статистики
-async function checkAndSendStatistics() {
-    const now = moment().tz('Europe/Moscow');
-    log(`Проверка времени отправки: ${now.format('YYYY-MM-DD HH:mm:ss')}`);
-
-    if (shouldSendStatistics()) {
-        log('Наступило время отправки статистики');
-        await sendStatistics();
+log('Настройка расписания отправки статистики (UTC -> MSK):');
+schedules.forEach(cronTime => {
+    log(`Добавлено расписание UTC: ${cronTime} (MSK: +3 часа)`);
+    const job = schedule.scheduleJob(cronTime, () => {
+        log(`Запуск отправки статистики по расписанию: ${cronTime} UTC`);
+        sendStatistics();
+    });
+    if (job) {
+        const nextUTC = job.nextInvocation();
+        const nextMSK = moment(nextUTC).tz('Europe/Moscow').format('YYYY-MM-DD HH:mm:ss');
+        log(`Следующий запуск для ${cronTime}: UTC=${nextUTC}, MSK=${nextMSK}`);
+    } else {
+        log(`Ошибка при создании расписания для ${cronTime}`, true);
     }
-}
-
-// Запускаем проверку каждую минуту
-log('Запуск системы расписания');
-setInterval(checkAndSendStatistics, 60 * 1000); // Проверка каждую минуту
-
-// Запускаем первую проверку сразу
-checkAndSendStatistics();
-
-// Добавляем тестовый запуск через 2 минуты
-setTimeout(async () => {
-    log('Выполняется тестовый запуск');
-    await sendStatistics();
-}, 2 * 60 * 1000);
+});
 
 // Обработчик команды /start
 bot.command('start', async (ctx) => {
