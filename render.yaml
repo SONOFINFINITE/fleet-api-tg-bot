@@ -1,8 +1,9 @@
 services:
   - type: web
     name: fleet-api-bot
-    env: docker
-    dockerfilePath: ./Dockerfile
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
       - key: BOT_TOKEN
         sync: false
@@ -15,8 +16,7 @@ services:
           property: url
     disk:
       name: data
-      mountPath: /app/data
+      mountPath: /data
       sizeGB: 1
     healthCheckPath: /health
-    buildCommand: npm install
-    startCommand: npm start 
+    plan: free 

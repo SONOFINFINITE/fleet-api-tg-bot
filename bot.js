@@ -80,7 +80,7 @@ moment.locale('ru');
 log('Установлена русская локализация');
 
 // Путь к файлу с подписчиками
-const subscribersPath = path.join(process.env.DATA_DIR || __dirname, 'subscribers.json');
+const subscribersPath = path.join(process.env.DATA_DIR || '/data', 'subscribers.json');
 log(`Путь к файлу подписчиков: ${subscribersPath}`);
 
 // Создаем директорию для данных, если её нет
@@ -224,8 +224,8 @@ const schedules = [
     '05 5 * * *',  // 08:05 MSK
     '00 9 * * *',  // 12:00 MSK
     '00 16 * * *', // 18:15 MSK (тестовое время)
-    '30 19 * * *', // 20:00 MSK
-    '35 19 * * *'  // 23:55 MSK
+    '45 19 * * *', // 20:00 MSK
+    '50 19 * * *'  // 23:55 MSK
 ];
 
 log('Настройка расписания отправки статистики (UTC -> MSK):');
