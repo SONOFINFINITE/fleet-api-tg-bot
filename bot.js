@@ -221,49 +221,51 @@ async function sendStatistics() {
 
 // Настройка расписания (время МСК)
 process.env.TZ = 'Europe/Moscow';
-const schedules = ['00 8 * * *', '00 12 * * *', '00 18 * * *', '00 20 * * *', '55 23 * * *'];
 
-// Функция для добавления задачи в расписание
-function scheduleTask(cronTime) {
+// Функция для проверки времени отправки
+function shouldSendStatistics() {
     const now = moment().tz('Europe/Moscow');
-    const [minute, hour, ...rest] = cronTime.split(' ');
-    
-    // Парсим время для проверки
-    const scheduledTime = moment().tz('Europe/Moscow')
-        .hour(parseInt(hour))
-        .minute(parseInt(minute))
-        .second(0);
-    
-    // Если время уже прошло сегодня, переносим на завтра
-    if (scheduledTime.isBefore(now)) {
-        scheduledTime.add(1, 'day');
-    }
-    
-    log(`Добавлено расписание: ${cronTime}`);
-    log(`Текущее время: ${now.format('YYYY-MM-DD HH:mm:ss')}`);
-    log(`Запланированное время: ${scheduledTime.format('YYYY-MM-DD HH:mm:ss')}`);
+    const currentHour = now.hour();
+    const currentMinute = now.minute();
 
-    const job = schedule.scheduleJob(cronTime, () => {
-        log(`Запуск отправки статистики по расписанию: ${cronTime}`);
-        sendStatistics();
-    });
+    // Массив времени отправки [час, минута]
+    const schedules = [
+        [8, 0],   // 08:00
+        [12, 0],  // 12:00
+        [18, 5],  // 18:00
+        [20, 0],  // 20:00
+        [23, 55]  // 23:55
+    ];
 
-    if (job) {
-        const nextRun = moment(job.nextInvocation()).tz('Europe/Moscow');
-        log(`Следующий запуск для ${cronTime}: ${nextRun.format('YYYY-MM-DD HH:mm:ss')} (MSK)`);
-    } else {
-        log(`Ошибка при создании расписания для ${cronTime}`, true);
+    // Проверяем, совпадает ли текущее время с одним из запланированных
+    return schedules.some(([hour, minute]) => 
+        currentHour === hour && currentMinute === minute
+    );
+}
+
+// Функция проверки и отправки статистики
+async function checkAndSendStatistics() {
+    const now = moment().tz('Europe/Moscow');
+    log(`Проверка времени отправки: ${now.format('YYYY-MM-DD HH:mm:ss')}`);
+
+    if (shouldSendStatistics()) {
+        log('Наступило время отправки статистики');
+        await sendStatistics();
     }
 }
 
-log('Настройка расписания отправки статистики:');
-schedules.forEach(cronTime => scheduleTask(cronTime));
+// Запускаем проверку каждую минуту
+log('Запуск системы расписания');
+setInterval(checkAndSendStatistics, 60 * 1000); // Проверка каждую минуту
 
-// Добавляем тестовый запуск через 2 минуты для проверки
-const testTime = moment().tz('Europe/Moscow').add(2, 'minutes');
-const testCron = `${testTime.minute()} ${testTime.hour()} * * *`;
-log(`Добавляю тестовое расписание на +2 минуты: ${testCron}`);
-scheduleTask(testCron);
+// Запускаем первую проверку сразу
+checkAndSendStatistics();
+
+// Добавляем тестовый запуск через 2 минуты
+setTimeout(async () => {
+    log('Выполняется тестовый запуск');
+    await sendStatistics();
+}, 2 * 60 * 1000);
 
 // Обработчик команды /start
 bot.command('start', async (ctx) => {
