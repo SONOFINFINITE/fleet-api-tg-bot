@@ -7,61 +7,92 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 
+// Функция для логирования с timestamp
+function log(message, error = false) {
+    const timestamp = moment().tz('Europe/Moscow').format('YYYY-MM-DD HH:mm:ss');
+    const logMessage = `[${timestamp}] ${message}`;
+    if (error) {
+        console.error(logMessage);
+    } else {
+        console.log(logMessage);
+    }
+}
+
 // Создаем Express приложение
 const app = express();
 const port = process.env.PORT || 3000;
 
 // URL нашего приложения на render.com
 const APP_URL = process.env.RENDER_EXTERNAL_URL;
+log(`APP_URL: ${APP_URL}`);
 
 // Добавляем простой эндпоинт для проверки работоспособности
 app.get('/', (req, res) => {
+    log('Получен GET запрос к корневому эндпоинту');
     res.send('Бот работает!');
 });
 
 // Добавляем эндпоинт для проверки здоровья
 app.get('/health', (req, res) => {
+    log('Получен GET запрос к эндпоинту /health');
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Добавляем эндпоинт для проверки времени
+app.get('/time', (req, res) => {
+    const now = moment().tz('Europe/Moscow');
+    const serverTime = {
+        moscow: now.format('YYYY-MM-DD HH:mm:ss'),
+        utc: moment().utc().format('YYYY-MM-DD HH:mm:ss'),
+        server: new Date().toISOString(),
+        timezone: process.env.TZ || 'system default'
+    };
+    log(`Запрос времени сервера: ${JSON.stringify(serverTime)}`);
+    res.json(serverTime);
 });
 
 // Функция для самопинга
 async function keepAlive() {
     if (APP_URL) {
         try {
+            log('Выполняется самопинг...');
             const response = await fetch(`${APP_URL}/health`);
             const data = await response.json();
-            console.log('Self-ping successful:', data.timestamp);
+            log(`Самопинг успешен: ${data.timestamp}`);
         } catch (error) {
-            console.error('Self-ping failed:', error.message);
+            log(`Ошибка самопинга: ${error.message}`, true);
         }
     }
 }
 
 // Запускаем веб-сервер
 app.listen(port, () => {
-    console.log(`Веб-сервер запущен на порту ${port}`);
+    log(`Веб-сервер запущен на порту ${port}`);
     
-    // Запускаем самопинг каждые 10 минут
     if (APP_URL) {
         setInterval(keepAlive, 2 * 60 * 1000);
-        console.log('Самопинг активирован');
+        log('Самопинг активирован (интервал: 2 минуты)');
     }
 });
 
 // Установка русской локализации
 moment.locale('ru');
+log('Установлена русская локализация');
 
 // Путь к файлу с подписчиками
 const subscribersPath = path.join(process.env.DATA_DIR || __dirname, 'subscribers.json');
+log(`Путь к файлу подписчиков: ${subscribersPath}`);
 
 // Создаем директорию для данных, если её нет
 const dataDir = path.dirname(subscribersPath);
 if (!fs.existsSync(dataDir)) {
+    log(`Создание директории для данных: ${dataDir}`);
     fs.mkdirSync(dataDir, { recursive: true });
 }
 
 // Создаем файл subscribers.json, если его нет
 if (!fs.existsSync(subscribersPath)) {
+    log('Создание файла subscribers.json');
     fs.writeFileSync(subscribersPath, JSON.stringify({ subscribers: [] }, null, 2));
 }
 
@@ -69,24 +100,33 @@ if (!fs.existsSync(subscribersPath)) {
 function getSubscribers() {
     try {
         const data = fs.readFileSync(subscribersPath, 'utf8');
-        return JSON.parse(data).subscribers;
+        const subscribers = JSON.parse(data).subscribers;
+        log(`Загружено ${subscribers.length} подписчиков`);
+        return subscribers;
     } catch (error) {
+        log(`Ошибка при чтении списка подписчиков: ${error.message}`, true);
         return [];
     }
 }
 
 // Функция для сохранения списка подписчиков
 function saveSubscribers(subscribers) {
-    fs.writeFileSync(subscribersPath, JSON.stringify({ subscribers }, null, 2));
+    try {
+        fs.writeFileSync(subscribersPath, JSON.stringify({ subscribers }, null, 2));
+        log(`Сохранено ${subscribers.length} подписчиков`);
+    } catch (error) {
+        log(`Ошибка при сохранении списка подписчиков: ${error.message}`, true);
+    }
 }
 
 // Проверка наличия токена бота
 if (!process.env.BOT_TOKEN) {
-    console.error('Ошибка: Не установлен BOT_TOKEN');
+    log('Ошибка: Не установлен BOT_TOKEN', true);
     process.exit(1);
 }
 
 const bot = new Bot(process.env.BOT_TOKEN);
+log('Бот инициализирован');
 
 // Создаем клавиатуру для неподписанных пользователей
 const subscribeKeyboard = new Keyboard()
@@ -103,8 +143,10 @@ const subscribedKeyboard = new Keyboard()
 
 async function fetchTopDrivers(endpoint) {
     try {
+        log(`Запрос данных для endpoint: ${endpoint}`);
         const response = await fetch(`https://fleet-api-server.onrender.com/top/money/${endpoint}`);
         
+        log(`Статус ответа: ${response.status}`);
         // Проверяем статус ответа
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -112,17 +154,19 @@ async function fetchTopDrivers(endpoint) {
         
         // Получаем текст ответа для логирования в случае ошибки
         const text = await response.text();
+        log(`Получен ответ длиной ${text.length} символов`);
         
         try {
             // Пытаемся распарсить JSON
             const data = JSON.parse(text);
+            log(`Успешно получены данные: ${data.length} записей`);
             return data;
         } catch (e) {
-            console.error('Ошибка парсинга JSON. Ответ сервера:', text);
+            log(`Ошибка парсинга JSON. Ответ сервера: ${text}`, true);
             return null;
         }
     } catch (error) {
-        console.error(`Ошибка при получении данных для ${endpoint}:`, error.message);
+        log(`Ошибка при получении данных для ${endpoint}: ${error.message}`, true);
         return null;
     }
 }
@@ -151,29 +195,45 @@ function formatMessage(data, isYesterday = false) {
 }
 
 async function sendStatistics() {
+    log('Начало отправки статистики');
     const data = await fetchTopDrivers('today');
     if (data) {
         const message = formatMessage(data);
         const subscribers = getSubscribers();
+        log(`Отправка статистики ${subscribers.length} подписчикам`);
         
         for (const chatId of subscribers) {
             try {
+                log(`Отправка сообщения в чат ${chatId}`);
                 await bot.api.sendMessage(chatId, message, { 
                     parse_mode: 'Markdown',
                     reply_markup: subscribedKeyboard
                 });
+                log(`Сообщение успешно отправлено в чат ${chatId}`);
             } catch (error) {
-                console.error(`Ошибка при отправке сообщения в чат ${chatId}:`, error);
+                log(`Ошибка при отправке сообщения в чат ${chatId}: ${error.message}`, true);
             }
         }
+    } else {
+        log('Нет данных для отправки статистики', true);
     }
 }
 
 // Настройка расписания (время МСК)
-const schedules = ['00 8 * * *', '00 12 * * *', '40 17 * * *', '00 20 * * *', '55 23 * * *'];
+const schedules = ['00 8 * * *', '00 12 * * *', '55 17 * * *', '00 20 * * *', '55 23 * * *'];
 
+log('Настройка расписания отправки статистики:');
 schedules.forEach(cronTime => {
-    schedule.scheduleJob(cronTime, sendStatistics);
+    log(`Добавлено расписание: ${cronTime}`);
+    const job = schedule.scheduleJob(cronTime, () => {
+        log(`Запуск отправки статистики по расписанию: ${cronTime}`);
+        sendStatistics();
+    });
+    if (job) {
+        log(`Следующий запуск для ${cronTime}: ${job.nextInvocation()}`);
+    } else {
+        log(`Ошибка при создании расписания для ${cronTime}`, true);
+    }
 });
 
 // Обработчик команды /start
