@@ -11,14 +11,41 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// URL нашего приложения на render.com
+const APP_URL = process.env.RENDER_EXTERNAL_URL;
+
 // Добавляем простой эндпоинт для проверки работоспособности
 app.get('/', (req, res) => {
     res.send('Бот работает!');
 });
 
+// Добавляем эндпоинт для проверки здоровья
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Функция для самопинга
+async function keepAlive() {
+    if (APP_URL) {
+        try {
+            const response = await fetch(`${APP_URL}/health`);
+            const data = await response.json();
+            console.log('Self-ping successful:', data.timestamp);
+        } catch (error) {
+            console.error('Self-ping failed:', error.message);
+        }
+    }
+}
+
 // Запускаем веб-сервер
 app.listen(port, () => {
     console.log(`Веб-сервер запущен на порту ${port}`);
+    
+    // Запускаем самопинг каждые 10 минут
+    if (APP_URL) {
+        setInterval(keepAlive, 10 * 60 * 1000);
+        console.log('Самопинг активирован');
+    }
 });
 
 // Установка русской локализации

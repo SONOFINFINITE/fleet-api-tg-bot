@@ -8,10 +8,15 @@ services:
         sync: false
       - key: PORT
         value: 3000
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: fleet-api-bot
+          property: url
     disk:
       name: data
       mountPath: /app/data
       sizeGB: 1
-    healthCheckPath: /
+    healthCheckPath: /health
     buildCommand: npm install
     startCommand: npm start 
