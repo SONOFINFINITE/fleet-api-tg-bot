@@ -1,0 +1,19 @@
+{
+  "name": "fleet-api-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for Fleet API statistics",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "grammy": "^1.35.0",
+    "node-schedule": "^2.1.1",
+    "node-fetch": "^2.6.7",
+    "moment-timezone": "^0.5.43",
+    "dotenv": "^16.3.1"
+  }
+} 
