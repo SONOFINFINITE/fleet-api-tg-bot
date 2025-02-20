@@ -43,7 +43,7 @@ app.listen(port, () => {
     
     // Запускаем самопинг каждые 10 минут
     if (APP_URL) {
-        setInterval(keepAlive, 10 * 60 * 1000);
+        setInterval(keepAlive, 2 * 60 * 1000);
         console.log('Самопинг активирован');
     }
 });
@@ -170,7 +170,7 @@ async function sendStatistics() {
 }
 
 // Настройка расписания (время МСК)
-const schedules = ['00 8 * * *', '00 12 * * *', '00 16 * * *', '00 20 * * *', '55 23 * * *'];
+const schedules = ['00 8 * * *', '00 12 * * *', '40 17 * * *', '00 20 * * *', '55 23 * * *'];
 
 schedules.forEach(cronTime => {
     schedule.scheduleJob(cronTime, sendStatistics);
