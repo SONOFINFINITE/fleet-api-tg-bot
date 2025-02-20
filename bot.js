@@ -220,26 +220,50 @@ async function sendStatistics() {
 }
 
 // Настройка расписания (время МСК)
-const schedules = ['00 8 * * *', '00 12 * * *', '55 17 * * *', '00 20 * * *', '55 23 * * *'];
+process.env.TZ = 'Europe/Moscow';
+const schedules = ['00 8 * * *', '00 12 * * *', '00 18 * * *', '00 20 * * *', '55 23 * * *'];
 
-log('Настройка расписания отправки статистики:');
-schedules.forEach(cronTime => {
+// Функция для добавления задачи в расписание
+function scheduleTask(cronTime) {
+    const now = moment().tz('Europe/Moscow');
+    const [minute, hour, ...rest] = cronTime.split(' ');
+    
+    // Парсим время для проверки
+    const scheduledTime = moment().tz('Europe/Moscow')
+        .hour(parseInt(hour))
+        .minute(parseInt(minute))
+        .second(0);
+    
+    // Если время уже прошло сегодня, переносим на завтра
+    if (scheduledTime.isBefore(now)) {
+        scheduledTime.add(1, 'day');
+    }
+    
     log(`Добавлено расписание: ${cronTime}`);
-    const job = schedule.scheduleJob({
-        rule: cronTime,
-        tz: 'Europe/Moscow'
-    }, () => {
+    log(`Текущее время: ${now.format('YYYY-MM-DD HH:mm:ss')}`);
+    log(`Запланированное время: ${scheduledTime.format('YYYY-MM-DD HH:mm:ss')}`);
+
+    const job = schedule.scheduleJob(cronTime, () => {
         log(`Запуск отправки статистики по расписанию: ${cronTime}`);
         sendStatistics();
     });
+
     if (job) {
-        const nextInvocation = job.nextInvocation();
-        const moscowTime = moment(nextInvocation).tz('Europe/Moscow').format('YYYY-MM-DD HH:mm:ss');
-        log(`Следующий запуск для ${cronTime}: ${moscowTime} (MSK)`);
+        const nextRun = moment(job.nextInvocation()).tz('Europe/Moscow');
+        log(`Следующий запуск для ${cronTime}: ${nextRun.format('YYYY-MM-DD HH:mm:ss')} (MSK)`);
     } else {
         log(`Ошибка при создании расписания для ${cronTime}`, true);
     }
-});
+}
+
+log('Настройка расписания отправки статистики:');
+schedules.forEach(cronTime => scheduleTask(cronTime));
+
+// Добавляем тестовый запуск через 2 минуты для проверки
+const testTime = moment().tz('Europe/Moscow').add(2, 'minutes');
+const testCron = `${testTime.minute()} ${testTime.hour()} * * *`;
+log(`Добавляю тестовое расписание на +2 минуты: ${testCron}`);
+scheduleTask(testCron);
 
 // Обработчик команды /start
 bot.command('start', async (ctx) => {
