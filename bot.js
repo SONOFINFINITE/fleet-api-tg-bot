@@ -225,12 +225,17 @@ const schedules = ['00 8 * * *', '00 12 * * *', '55 17 * * *', '00 20 * * *', '5
 log('Настройка расписания отправки статистики:');
 schedules.forEach(cronTime => {
     log(`Добавлено расписание: ${cronTime}`);
-    const job = schedule.scheduleJob(cronTime, () => {
+    const job = schedule.scheduleJob({
+        rule: cronTime,
+        tz: 'Europe/Moscow'
+    }, () => {
         log(`Запуск отправки статистики по расписанию: ${cronTime}`);
         sendStatistics();
     });
     if (job) {
-        log(`Следующий запуск для ${cronTime}: ${job.nextInvocation()}`);
+        const nextInvocation = job.nextInvocation();
+        const moscowTime = moment(nextInvocation).tz('Europe/Moscow').format('YYYY-MM-DD HH:mm:ss');
+        log(`Следующий запуск для ${cronTime}: ${moscowTime} (MSK)`);
     } else {
         log(`Ошибка при создании расписания для ${cronTime}`, true);
     }
