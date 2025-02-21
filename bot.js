@@ -206,7 +206,12 @@ function formatMessage(data, isYesterday = false) {
         const orders = Number(driver.orders) || 0;
         const hourlyRate = hours > 0 ? Math.round(money / hours) : 0;
 
-        message += `${index + 1}. Т79.${driverId} - ${orders} з - ${hours} ч - ${money} ₽ - ${hourlyRate} ₽/ч \n`;
+        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
+        
+        // Добавляем разделительную линию после каждой записи, кроме последней
+        if (index !== data.length - 1) {
+            message += '------------------------------------\n';
+        }
     });
 
     return message;
@@ -241,10 +246,9 @@ async function sendStatistics() {
 const schedules = [
     '05 5 * * *',  // 08:05 MSK
     '00 9 * * *',  // 12:00 MSK
-    '00 16 * * *', // 18:15 MSK (тестовое время)
-    '00 20 * * *', // 20:00 MSK
-    '20 20 * * *',  // 23:55 MSK
-    '40 20 * * *'  // 23:55 MSK
+    '00 13 * * *', // 18:15 MSK (тестовое время)
+    '00 17 * * *', // 20:00 MSK
+    '55 20 * * *'  // 23:55 MSK
 ];
 
 log('Настройка расписания отправки статистики (UTC -> MSK):');
