@@ -146,18 +146,23 @@ if (!process.env.BOT_TOKEN) {
 const bot = new Bot(process.env.BOT_TOKEN);
 log('Бот инициализирован');
 
-// Создаем клавиатуру для неподписанных пользователей
-const subscribeKeyboard = new Keyboard()
-    .text("✅ Подписаться на уведомления")
-    .resized();
-
-// Создаем клавиатуру для подписанных пользователей
-const subscribedKeyboard = new Keyboard()
+// Создаем клавиатуру для всех пользователей
+const mainKeyboard = new Keyboard()
     .text("📊 Статистика за сегодня")
     .text("📈 Статистика за вчера")
-    .row()
-    .text("❌ Отписаться от уведомлений")
     .resized();
+
+// Функция для получения разрешенных chat_id из переменных окружения
+function getAllowedChatIds() {
+    const chatIds = [];
+    
+    // Проверяем наличие каждой переменной окружения
+    if (process.env.CHAT_ID_1) chatIds.push(Number(process.env.CHAT_ID_1));
+    if (process.env.CHAT_ID_2) chatIds.push(Number(process.env.CHAT_ID_2));
+    if (process.env.CHAT_ID_3) chatIds.push(Number(process.env.CHAT_ID_3));
+    
+    return chatIds;
+}
 
 async function fetchTopDrivers(endpoint) {
     try {
@@ -222,15 +227,15 @@ async function sendStatistics() {
     const data = await fetchTopDrivers('today');
     if (data) {
         const message = formatMessage(data);
-        const subscribers = getSubscribers();
-        log(`Отправка статистики ${subscribers.length} подписчикам`);
+        const allowedChatIds = getAllowedChatIds();
+        log(`Отправка статистики ${allowedChatIds.length} получателям`);
         
-        for (const chatId of subscribers) {
+        for (const chatId of allowedChatIds) {
             try {
                 log(`Отправка сообщения в чат ${chatId}`);
                 await bot.api.sendMessage(chatId, message, { 
                     parse_mode: 'Markdown',
-                    reply_markup: subscribedKeyboard
+                    reply_markup: mainKeyboard
                 });
                 log(`Сообщение успешно отправлено в чат ${chatId}`);
             } catch (error) {
@@ -269,97 +274,79 @@ schedules.forEach(cronTime => {
 
 // Обработчик команды /start
 bot.command('start', async (ctx) => {
-    const subscribers = getSubscribers();
     const chatId = ctx.chat.id;
-    const isSubscribed = subscribers.includes(chatId);
+    const allowedChatIds = getAllowedChatIds();
 
-    await ctx.reply(
-        'Добро пожаловать! Используйте кнопки ниже для управления подпиской на статистику.',
-        { 
-            reply_markup: isSubscribed ? subscribedKeyboard : subscribeKeyboard 
-        }
-    );
+    if (allowedChatIds.includes(chatId)) {
+        await ctx.reply(
+            'Добро пожаловать! Используйте кнопки ниже для просмотра статистики.',
+            { 
+                reply_markup: mainKeyboard 
+            }
+        );
+    } else {
+        await ctx.reply('У вас нет доступа к этому боту.');
+    }
 });
 
 // Обработчик кнопки статистики за сегодня
 bot.hears('📊 Статистика за сегодня', async (ctx) => {
+    const chatId = ctx.chat.id;
+    const allowedChatIds = getAllowedChatIds();
+
+    if (!allowedChatIds.includes(chatId)) {
+        await ctx.reply('У вас нет доступа к этой функции.');
+        return;
+    }
+
     try {
         const data = await fetchTopDrivers('today');
         if (data) {
             const message = formatMessage(data);
             await ctx.reply(message, { 
                 parse_mode: 'Markdown',
-                reply_markup: subscribedKeyboard
+                reply_markup: mainKeyboard
             });
         } else {
             await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.', {
-                reply_markup: subscribedKeyboard
+                reply_markup: mainKeyboard
             });
         }
     } catch (error) {
         console.error('Ошибка при обработке запроса статистики:', error);
         await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.', {
-            reply_markup: subscribedKeyboard
+            reply_markup: mainKeyboard
         });
     }
 });
 
 // Обработчик кнопки статистики за вчера
 bot.hears('📈 Статистика за вчера', async (ctx) => {
+    const chatId = ctx.chat.id;
+    const allowedChatIds = getAllowedChatIds();
+
+    if (!allowedChatIds.includes(chatId)) {
+        await ctx.reply('У вас нет доступа к этой функции.');
+        return;
+    }
+
     try {
         const data = await fetchTopDrivers('yesterday');
         if (data) {
             const message = formatMessage(data, true);
             await ctx.reply(message, { 
                 parse_mode: 'Markdown',
-                reply_markup: subscribedKeyboard
+                reply_markup: mainKeyboard
             });
         } else {
             await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.', {
-                reply_markup: subscribedKeyboard
+                reply_markup: mainKeyboard
             });
         }
     } catch (error) {
         console.error('Ошибка при обработке запроса статистики:', error);
         await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.', {
-            reply_markup: subscribedKeyboard
-        });
-    }
-});
-
-// Обработчик кнопки подписки
-bot.hears('✅ Подписаться на уведомления', (ctx) => {
-    const subscribers = getSubscribers();
-    const chatId = ctx.chat.id;
-
-    if (!subscribers.includes(chatId)) {
-        subscribers.push(chatId);
-        saveSubscribers(subscribers);
-        ctx.reply('Вы успешно подписались на уведомления! 👍\nТеперь вам доступна расширенная статистика:', {
-            reply_markup: subscribedKeyboard
-        });
-    } else {
-        ctx.reply('Вы уже подписаны на уведомления', {
-            reply_markup: subscribedKeyboard
-        });
-    }
-});
-
-// Обработчик кнопки отписки
-bot.hears('❌ Отписаться от уведомлений', (ctx) => {
-    const subscribers = getSubscribers();
-    const chatId = ctx.chat.id;
-    const index = subscribers.indexOf(chatId);
-
-    if (index !== -1) {
-        subscribers.splice(index, 1);
-        saveSubscribers(subscribers);
-        ctx.reply('Вы успешно отписались от уведомлений', {
-            reply_markup: subscribeKeyboard
-        });
-    } else {
-        ctx.reply('Вы не были подписаны на уведомления', {
-            reply_markup: subscribeKeyboard
+            reply_markup: mainKeyboard
         });
     }
 });
