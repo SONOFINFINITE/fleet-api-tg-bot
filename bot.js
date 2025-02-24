@@ -272,7 +272,7 @@ async function sendYesterdayStatistics() {
 // Настройка расписания (время UTC для соответствия МСК)
 const todayStatsSchedules = [
     '00 5 * * *',  // 08:05 MSK
-    '00 9 * * *',  // 12:00 MSK
+    '30 9 * * *',  // 12:00 MSK
     '00 13 * * *', // 18:15 MSK (тестовое время)
     '00 17 * * *', // 20:00 MSK
 ];
