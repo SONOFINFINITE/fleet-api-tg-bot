@@ -340,7 +340,7 @@ bot.hears('📊 Статистика за сегодня', async (ctx) => {
     try {
         const data = await fetchTopDrivers('today');
         if (data) {
-            const message = formatMessage(data);
+            const message = formatTodayMessage(data);
             await ctx.reply(message, { 
                 parse_mode: 'Markdown',
                 reply_markup: mainKeyboard
@@ -371,7 +371,7 @@ bot.hears('📈 Статистика за вчера', async (ctx) => {
     try {
         const data = await fetchTopDrivers('yesterday');
         if (data) {
-            const message = formatMessage(data, true);
+            const message = formatYesterdayMessage(data);
             await ctx.reply(message, { 
                 parse_mode: 'Markdown',
                 reply_markup: mainKeyboard
