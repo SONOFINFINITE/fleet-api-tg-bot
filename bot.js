@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Bot, Keyboard } = require('grammy');
+const { Bot } = require('grammy');
 const schedule = require('node-schedule');
 const fetch = require('node-fetch');
 const moment = require('moment-timezone');
@@ -227,8 +227,7 @@ async function sendTodayStatistics() {
             try {
                 log(`Отправка сообщения в чат ${chatId}`);
                 await bot.api.sendMessage(chatId, message, { 
-                    parse_mode: 'Markdown',
-                    reply_markup: mainKeyboard
+                    parse_mode: 'Markdown'
                 });
                 log(`Сообщение успешно отправлено в чат ${chatId}`);
             } catch (error) {
@@ -251,8 +250,7 @@ async function sendYesterdayStatistics() {
             try {
                 log(`Отправка сообщения в чат ${chatId}`);
                 await bot.api.sendMessage(chatId, message, { 
-                    parse_mode: 'Markdown',
-                    reply_markup: mainKeyboard
+                    parse_mode: 'Markdown'
                 });
                 log(`Сообщение успешно отправлено в чат ${chatId}`);
             } catch (error) {
@@ -310,19 +308,14 @@ bot.command('start', async (ctx) => {
     const allowedChatIds = getAllowedChatIds();
 
     if (allowedChatIds.includes(chatId)) {
-        await ctx.reply(
-            'Добро пожаловать! Используйте кнопки ниже для просмотра статистики.',
-            { 
-                reply_markup: mainKeyboard 
-            }
-        );
+        await ctx.reply('Добро пожаловать! Используйте команды /tday для статистики за сегодня и /yday для статистики за вчера.');
     } else {
         await ctx.reply('У вас нет доступа к этому боту.');
     }
 });
 
-// Обработчик кнопки статистики за сегодня
-bot.hears('📊 Статистика за сегодня', async (ctx) => {
+// Обработчик команды /tday (статистика за сегодня)
+bot.command('tday', async (ctx) => {
     const chatId = ctx.chat.id;
     const allowedChatIds = getAllowedChatIds();
 
@@ -335,25 +328,18 @@ bot.hears('📊 Статистика за сегодня', async (ctx) => {
         const data = await fetchTopDrivers('today');
         if (data) {
             const message = formatTodayMessage(data);
-            await ctx.reply(message, { 
-                parse_mode: 'Markdown',
-                reply_markup: mainKeyboard
-            });
+            await ctx.reply(message, { parse_mode: 'Markdown' });
         } else {
-            await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.', {
-                reply_markup: mainKeyboard
-            });
+            await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.');
         }
     } catch (error) {
         console.error('Ошибка при обработке запроса статистики:', error);
-        await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.', {
-            reply_markup: mainKeyboard
-        });
+        await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
     }
 });
 
-// Обработчик кнопки статистики за вчера
-bot.hears('📈 Статистика за вчера', async (ctx) => {
+// Обработчик команды /yday (статистика за вчера)
+bot.command('yday', async (ctx) => {
     const chatId = ctx.chat.id;
     const allowedChatIds = getAllowedChatIds();
 
@@ -366,20 +352,13 @@ bot.hears('📈 Статистика за вчера', async (ctx) => {
         const data = await fetchTopDrivers('yesterday');
         if (data) {
             const message = formatYesterdayMessage(data);
-            await ctx.reply(message, { 
-                parse_mode: 'Markdown',
-                reply_markup: mainKeyboard
-            });
+            await ctx.reply(message, { parse_mode: 'Markdown' });
         } else {
-            await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.', {
-                reply_markup: mainKeyboard
-            });
+            await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.');
         }
     } catch (error) {
         console.error('Ошибка при обработке запроса статистики:', error);
-        await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.', {
-            reply_markup: mainKeyboard
-        });
+        await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
     }
 });
 
