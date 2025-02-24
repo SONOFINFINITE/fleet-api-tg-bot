@@ -114,29 +114,6 @@ if (!fs.existsSync(subscribersPath)) {
     }
 }
 
-// Функция для чтения списка подписчиков
-function getSubscribers() {
-    try {
-        const data = fs.readFileSync(subscribersPath, 'utf8');
-        const subscribers = JSON.parse(data).subscribers;
-        log(`Загружено ${subscribers.length} подписчиков`);
-        return subscribers;
-    } catch (error) {
-        log(`Ошибка при чтении списка подписчиков: ${error.message}`, true);
-        return [];
-    }
-}
-
-// Функция для сохранения списка подписчиков
-function saveSubscribers(subscribers) {
-    try {
-        fs.writeFileSync(subscribersPath, JSON.stringify({ subscribers }, null, 2));
-        log(`Сохранено ${subscribers.length} подписчиков`);
-    } catch (error) {
-        log(`Ошибка при сохранении списка подписчиков: ${error.message}`, true);
-    }
-}
-
 // Проверка наличия токена бота
 if (!process.env.BOT_TOKEN) {
     log('Ошибка: Не установлен BOT_TOKEN', true);
@@ -215,14 +192,14 @@ function formatMessage(data, isYesterday = false) {
         
         // Добавляем разделительную линию после каждой записи, кроме последней
         if (index !== data.length - 1) {
-            message += '------------------------------------\n';
+            message += '--------------------------------------------------\n';
         }
     });
 
     return message;
 }
 
-async function sendStatistics() {
+async function sendTodayStatistics() {
     log('Начало отправки статистики');
     const data = await fetchTopDrivers('today');
     if (data) {
@@ -246,22 +223,48 @@ async function sendStatistics() {
         log('Нет данных для отправки статистики', true);
     }
 }
-
+async function sendYesterdayStatistics() {
+    log('Начало отправки статистики');
+    const data = await fetchTopDrivers('yesterday');
+    if (data) {
+        const message = formatMessage(data);
+        const allowedChatIds = getAllowedChatIds();
+        log(`Отправка статистики ${allowedChatIds.length} получателям`);
+        
+        for (const chatId of allowedChatIds) {
+            try {
+                log(`Отправка сообщения в чат ${chatId}`);
+                await bot.api.sendMessage(chatId, message, { 
+                    parse_mode: 'Markdown',
+                    reply_markup: mainKeyboard
+                });
+                log(`Сообщение успешно отправлено в чат ${chatId}`);
+            } catch (error) {
+                log(`Ошибка при отправке сообщения в чат ${chatId}: ${error.message}`, true);
+            }
+        }
+    } else {
+        log('Нет данных для отправки статистики', true);
+    }
+}
 // Настройка расписания (время UTC для соответствия МСК)
-const schedules = [
-    '05 5 * * *',  // 08:05 MSK
+const todayStatsSchedules = [
+    '00 5 * * *',  // 08:05 MSK
     '00 9 * * *',  // 12:00 MSK
     '00 13 * * *', // 18:15 MSK (тестовое время)
     '00 17 * * *', // 20:00 MSK
     '55 20 * * *'  // 23:55 MSK
 ];
+const yesterdayStatsSchedules = [
+    '30 6 * * *',  // 08:05 MSK
 
+];
 log('Настройка расписания отправки статистики (UTC -> MSK):');
-schedules.forEach(cronTime => {
+todayStatsSchedules.forEach(cronTime => {
     log(`Добавлено расписание UTC: ${cronTime} (MSK: +3 часа)`);
     const job = schedule.scheduleJob(cronTime, () => {
         log(`Запуск отправки статистики по расписанию: ${cronTime} UTC`);
-        sendStatistics();
+        sendTodayStatistics();
     });
     if (job) {
         const nextUTC = job.nextInvocation();
@@ -271,7 +274,20 @@ schedules.forEach(cronTime => {
         log(`Ошибка при создании расписания для ${cronTime}`, true);
     }
 });
-
+yesterdayStatsSchedules.forEach(cronTime => {
+    log(`Добавлено расписание UTC: ${cronTime} (MSK: +3 часа)`);
+    const job = schedule.scheduleJob(cronTime, () => {
+        log(`Запуск отправки статистики по расписанию: ${cronTime} UTC`);
+        sendYesterdayStatistics();
+    });
+    if (job) {
+        const nextUTC = job.nextInvocation();
+        const nextMSK = moment(nextUTC).tz('Europe/Moscow').format('YYYY-MM-DD HH:mm:ss');
+        log(`Следующий запуск для ${cronTime}: UTC=${nextUTC}, MSK=${nextMSK}`);
+    } else {
+        log(`Ошибка при создании расписания для ${cronTime}`, true);
+    }
+});
 // Обработчик команды /start
 bot.command('start', async (ctx) => {
     const chatId = ctx.chat.id;
