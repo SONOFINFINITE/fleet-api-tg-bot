@@ -171,15 +171,12 @@ async function fetchTopDrivers(endpoint) {
     }
 }
 
-function formatMessage(data, isYesterday = false) {
+function formatTodayMessage(data) {
     const now = moment().tz('Europe/Moscow');
-    const date = isYesterday ? now.subtract(1, 'days') : now;
-    const dateStr = date.format('D MMMM YYYY');
+    const dateStr = now.format('D MMMM YYYY');
     const timeStr = now.format('HH:mm');
 
-    let message = isYesterday 
-        ? `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`
-        : `*Топ Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
+    let message = `*Топ Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
 
     data.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
@@ -192,7 +189,32 @@ function formatMessage(data, isYesterday = false) {
         
         // Добавляем разделительную линию после каждой записи, кроме последней
         if (index !== data.length - 1) {
-            message += '--------------------------------------------------\n';
+            message += '--------------------------------------------------------\n';
+        }
+    });
+
+    return message;
+}
+function formatYesterdayMessage(data) {
+    const now = moment().tz('Europe/Moscow');
+    const date = now.subtract(1, 'days');
+    const dateStr = date.format('D MMMM YYYY');
+    const timeStr = now.format('HH:mm');
+
+    let message = `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`
+
+    data.forEach((driver, index) => {
+        const driverId = driver.phone.slice(-5);
+        const hours = Number(driver.hours.replace(',', '.')) || 0;
+        const money = Number(driver.money) || 0;
+        const orders = Number(driver.orders) || 0;
+        const hourlyRate = hours > 0 ? Math.round(money / hours) : 0;
+
+        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
+        
+        // Добавляем разделительную линию после каждой записи, кроме последней
+        if (index !== data.length - 1) {
+            message += '--------------------------------------------------------\n';
         }
     });
 
@@ -203,7 +225,7 @@ async function sendTodayStatistics() {
     log('Начало отправки статистики');
     const data = await fetchTopDrivers('today');
     if (data) {
-        const message = formatMessage(data);
+        const message = formatTodayMessage(data);
         const allowedChatIds = getAllowedChatIds();
         log(`Отправка статистики ${allowedChatIds.length} получателям`);
         
@@ -227,7 +249,7 @@ async function sendYesterdayStatistics() {
     log('Начало отправки статистики');
     const data = await fetchTopDrivers('yesterday');
     if (data) {
-        const message = formatMessage(data);
+        const message = formatYesterdayMessage(data);
         const allowedChatIds = getAllowedChatIds();
         log(`Отправка статистики ${allowedChatIds.length} получателям`);
         
@@ -256,7 +278,7 @@ const todayStatsSchedules = [
     '55 20 * * *'  // 23:55 MSK
 ];
 const yesterdayStatsSchedules = [
-    '30 6 * * *',  // 08:05 MSK
+    '40 6 * * *',  // 08:05 MSK
 
 ];
 log('Настройка расписания отправки статистики (UTC -> MSK):');
