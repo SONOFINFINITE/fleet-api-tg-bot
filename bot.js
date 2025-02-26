@@ -170,7 +170,8 @@ function formatTodayMessage(data) {
     const dateStr = now.format('D MMMM YYYY');
     const timeStr = now.format('HH:mm');
 
-    let message = `*Топ Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
+    let message = `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
+    message += `*Топ Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
 
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
@@ -181,23 +182,22 @@ function formatTodayMessage(data) {
 
         message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
         
-        // Добавляем разделительную линию после каждой записи, кроме последней
         if (index !== data.topList.length - 1) {
             message += '--------------------------------------------------------\n';
         }
     });
 
-    // Добавляем информацию о дневном бонусе в конец сообщения
-    message += `\n*Дневной бонус: ${data.dailyBonuSum}₽*`;
-
     return message;
 }
+
 function formatWeekMessage(data) {
     const now = moment().tz('Europe/Moscow');
-    const dateStr = now.format('D MMMM YYYY');
-    const timeStr = now.format('HH:mm');
+    const startOfWeek = now.clone().startOf('week').add(1, 'day'); // Понедельник
+    const endOfWeek = now.clone().endOf('week').add(1, 'day'); // Воскресенье
+    const dateRange = `с ${startOfWeek.format('D MMMM')} по ${endOfWeek.format('D MMMM')}`;
 
-    let message = `*Топ Курьеров за неделю*\n*Парки Народный и Luxury courier*\n\n`;
+    let message = `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
+    message += `*Топ Курьеров за неделю ${dateRange}*\n*Парки Народный и Luxury courier*\n\n`;
 
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
@@ -208,24 +208,22 @@ function formatWeekMessage(data) {
 
         message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
         
-        // Добавляем разделительную линию после каждой записи, кроме последней
         if (index !== data.topList.length - 1) {
             message += '--------------------------------------------------------\n';
         }
     });
 
-    // Добавляем информацию о дневном бонусе в конец сообщения
-    message += `\n*Недельный бонус: ${data.weeklyBonusSum}*`;
-
     return message;
 }
+
 function formatYesterdayMessage(data) {
     const now = moment().tz('Europe/Moscow');
     const date = now.subtract(1, 'days');
     const dateStr = date.format('D MMMM YYYY');
     const timeStr = now.format('HH:mm');
 
-    let message = `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`;
+    let message = `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
+    message += `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`;
 
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
@@ -236,14 +234,10 @@ function formatYesterdayMessage(data) {
 
         message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
         
-        // Добавляем разделительную линию после каждой записи, кроме последней
         if (index !== data.topList.length - 1) {
             message += '--------------------------------------------------------\n';
         }
     });
-
-    // Добавляем информацию о дневном бонусе в конец сообщения
-    message += `\n*Дневной бонус: ${data.dailyBonuSum}₽*`;
 
     return message;
 }
@@ -295,6 +289,7 @@ async function sendYesterdayStatistics() {
         log('Нет данных для отправки статистики', true);
     }
 }
+
 async function sendWeekStatistics() {
     log('Начало отправки статистики');
     const data = await fetchTopDrivers('week');
@@ -318,6 +313,7 @@ async function sendWeekStatistics() {
         log('Нет данных для отправки статистики', true);
     }
 }
+
 // Настройка расписания (время UTC для соответствия МСК)
 const todayStatsSchedules = [
     '00 5 * * *',  // 08:05 MSK
@@ -419,6 +415,7 @@ bot.command('yday', async (ctx) => {
         await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
     }
 });
+
 bot.command('week', async (ctx) => {
     const chatId = ctx.chat.id;
     const allowedChatIds = getAllowedChatIds();
