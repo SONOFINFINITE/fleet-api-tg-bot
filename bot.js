@@ -215,7 +215,7 @@ function formatWeekMessage(data) {
     });
 
     // Добавляем информацию о дневном бонусе в конец сообщения
-    message += `\n*Недельный бонус: ${data.weeklyBonusSum}₽*`;
+    message += `\n*Недельный бонус: ${data.weeklyBonusSum}*`;
 
     return message;
 }
