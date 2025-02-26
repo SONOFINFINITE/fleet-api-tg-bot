@@ -138,9 +138,10 @@ function getAllowedChatIds() {
 async function fetchTopDrivers(endpoint) {
     try {
         log(`Запрос данных для endpoint: ${endpoint}`);
-        const [topResponse, weekResponse] = await Promise.all([
+        const [topResponse, weekResponse, yesterdayResponse] = await Promise.all([
             fetch(`https://fleet-api-server.onrender.com/top/money/${endpoint}`),
-            fetch(`https://fleet-api-server.onrender.com/top/money/week`)
+            fetch(`https://fleet-api-server.onrender.com/top/money/week`),
+            fetch(`https://fleet-api-server.onrender.com/monthlybonus`)
         ]);
         
         log(`Статус ответа top: ${topResponse.status}, week: ${weekResponse.status}`);
@@ -188,7 +189,7 @@ function formatTodayMessage(data) {
     
     let message = `*Топ Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
     message += `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
-
+    message += `*Месячный бонус: ${data.monthlyBonus}*\n\n`;
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
         const hours = Number(driver.hours.replace(',', '.')) || 0;
@@ -243,6 +244,7 @@ function formatYesterdayMessage(data) {
 
     let message = `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`;
     message += `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
+    message += `*Месячный бонус: ${data.monthlyBonus}₽*\n\n`;
 
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
