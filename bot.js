@@ -172,46 +172,52 @@ function formatTodayMessage(data) {
 
     let message = `*Топ Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
 
-    data.forEach((driver, index) => {
+    data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
         const hours = Number(driver.hours.replace(',', '.')) || 0;
         const money = Number(driver.money) || 0;
         const orders = Number(driver.orders) || 0;
         const hourlyRate = hours > 0 ? Math.round(money / hours) : 0;
-        const daшlyBonus = Number(driver.dailyBonuSum) || 0;
 
-        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n Дневной бонус: ${daшlyBonus}₽\n`;
+        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
         
         // Добавляем разделительную линию после каждой записи, кроме последней
-        if (index !== data.length - 1) {
+        if (index !== data.topList.length - 1) {
             message += '--------------------------------------------------------\n';
         }
     });
 
+    // Добавляем информацию о дневном бонусе в конец сообщения
+    message += `\n*Дневной бонус: ${data.dailyBonuSum}₽*`;
+
     return message;
 }
+
 function formatYesterdayMessage(data) {
     const now = moment().tz('Europe/Moscow');
     const date = now.subtract(1, 'days');
     const dateStr = date.format('D MMMM YYYY');
     const timeStr = now.format('HH:mm');
 
-    let message = `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`
+    let message = `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`;
 
-    data.forEach((driver, index) => {
+    data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
         const hours = Number(driver.hours.replace(',', '.')) || 0;
         const money = Number(driver.money) || 0;
         const orders = Number(driver.orders) || 0;
         const hourlyRate = hours > 0 ? Math.round(money / hours) : 0;
-        const dailyBonus = Number(driver.dailyBonuSum) || 0;
-        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n Дневной бонус: ${dailyBonus}₽\n`;
+
+        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
         
         // Добавляем разделительную линию после каждой записи, кроме последней
-        if (index !== data.length - 1) {
+        if (index !== data.topList.length - 1) {
             message += '--------------------------------------------------------\n';
         }
     });
+
+    // Добавляем информацию о дневном бонусе в конец сообщения
+    message += `\n*Дневной бонус: ${data.dailyBonuSum}₽*`;
 
     return message;
 }
@@ -239,6 +245,7 @@ async function sendTodayStatistics() {
         log('Нет данных для отправки статистики', true);
     }
 }
+
 async function sendYesterdayStatistics() {
     log('Начало отправки статистики');
     const data = await fetchTopDrivers('yesterday');
@@ -262,6 +269,7 @@ async function sendYesterdayStatistics() {
         log('Нет данных для отправки статистики', true);
     }
 }
+
 // Настройка расписания (время UTC для соответствия МСК)
 const todayStatsSchedules = [
     '00 5 * * *',  // 08:05 MSK
@@ -303,6 +311,7 @@ yesterdayStatsSchedules.forEach(cronTime => {
         log(`Ошибка при создании расписания для ${cronTime}`, true);
     }
 });
+
 // Обработчик команды /start
 bot.command('start', async (ctx) => {
     const chatId = ctx.chat.id;
