@@ -192,7 +192,33 @@ function formatTodayMessage(data) {
 
     return message;
 }
+function formatWeekMessage(data) {
+    const now = moment().tz('Europe/Moscow');
+    const dateStr = now.format('D MMMM YYYY');
+    const timeStr = now.format('HH:mm');
 
+    let message = `*Топ Курьеров за неделю*\n*Парки Народный и Luxury courier*\n\n`;
+
+    data.topList.forEach((driver, index) => {
+        const driverId = driver.phone.slice(-5);
+        const hours = Number(driver.hours.replace(',', '.')) || 0;
+        const money = Number(driver.money) || 0;
+        const orders = Number(driver.orders) || 0;
+        const hourlyRate = hours > 0 ? Math.round(money / hours) : 0;
+
+        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
+        
+        // Добавляем разделительную линию после каждой записи, кроме последней
+        if (index !== data.topList.length - 1) {
+            message += '--------------------------------------------------------\n';
+        }
+    });
+
+    // Добавляем информацию о дневном бонусе в конец сообщения
+    message += `\n*Недельный бонус: ${data.weeklyBonusSum}₽*`;
+
+    return message;
+}
 function formatYesterdayMessage(data) {
     const now = moment().tz('Europe/Moscow');
     const date = now.subtract(1, 'days');
@@ -269,7 +295,29 @@ async function sendYesterdayStatistics() {
         log('Нет данных для отправки статистики', true);
     }
 }
-
+async function sendWeekStatistics() {
+    log('Начало отправки статистики');
+    const data = await fetchTopDrivers('week');
+    if (data) {
+        const message = formatWeekMessage(data);
+        const allowedChatIds = getAllowedChatIds();
+        log(`Отправка статистики ${allowedChatIds.length} получателям`);
+        
+        for (const chatId of allowedChatIds) {
+            try {
+                log(`Отправка сообщения в чат ${chatId}`);
+                await bot.api.sendMessage(chatId, message, { 
+                    parse_mode: 'Markdown'
+                });
+                log(`Сообщение успешно отправлено в чат ${chatId}`);
+            } catch (error) {
+                log(`Ошибка при отправке сообщения в чат ${chatId}: ${error.message}`, true);
+            }
+        }
+    } else {
+        log('Нет данных для отправки статистики', true);
+    }
+}
 // Настройка расписания (время UTC для соответствия МСК)
 const todayStatsSchedules = [
     '00 5 * * *',  // 08:05 MSK
@@ -362,6 +410,28 @@ bot.command('yday', async (ctx) => {
         const data = await fetchTopDrivers('yesterday');
         if (data) {
             const message = formatYesterdayMessage(data);
+            await ctx.reply(message, { parse_mode: 'Markdown' });
+        } else {
+            await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.');
+        }
+    } catch (error) {
+        console.error('Ошибка при обработке запроса статистики:', error);
+        await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
+    }
+});
+bot.command('week', async (ctx) => {
+    const chatId = ctx.chat.id;
+    const allowedChatIds = getAllowedChatIds();
+
+    if (!allowedChatIds.includes(chatId)) {
+        await ctx.reply('У вас нет доступа к этой функции.');
+        return;
+    }
+
+    try {
+        const data = await fetchTopDrivers('week');
+        if (data) {
+            const message = formatWeekMessage(data);
             await ctx.reply(message, { parse_mode: 'Markdown' });
         } else {
             await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.');
