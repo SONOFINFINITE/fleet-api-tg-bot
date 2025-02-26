@@ -178,8 +178,9 @@ function formatTodayMessage(data) {
         const money = Number(driver.money) || 0;
         const orders = Number(driver.orders) || 0;
         const hourlyRate = hours > 0 ? Math.round(money / hours) : 0;
+        const daшlyBonus = Number(driver.dailyBonuSum) || 0;
 
-        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
+        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n Дневной бонус: ${daшlyBonus}₽\n`;
         
         // Добавляем разделительную линию после каждой записи, кроме последней
         if (index !== data.length - 1) {
@@ -203,8 +204,8 @@ function formatYesterdayMessage(data) {
         const money = Number(driver.money) || 0;
         const orders = Number(driver.orders) || 0;
         const hourlyRate = hours > 0 ? Math.round(money / hours) : 0;
-
-        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
+        const dailyBonus = Number(driver.dailyBonuSum) || 0;
+        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n Дневной бонус: ${dailyBonus}₽\n`;
         
         // Добавляем разделительную линию после каждой записи, кроме последней
         if (index !== data.length - 1) {
@@ -264,8 +265,8 @@ async function sendYesterdayStatistics() {
 // Настройка расписания (время UTC для соответствия МСК)
 const todayStatsSchedules = [
     '00 5 * * *',  // 08:05 MSK
-    '50 10 * * *',  // 12:00 MSK
-    '00 13 * * *', // 18:15 MSK (тестовое время)
+    '00 9 * * *',  // 12:00 MSK
+    '00 13 * * *', // 16:00 MSK
     '00 17 * * *', // 20:00 MSK
 ];
 const yesterdayStatsSchedules = [
