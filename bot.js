@@ -185,8 +185,9 @@ function formatTodayMessage(data) {
     const dateStr = now.format('D MMMM YYYY');
     const timeStr = now.format('HH:mm');
 
-    let message = `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
-    message += `*Топ Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
+    
+    let message = `*Топ Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
+    message += `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
 
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
@@ -207,11 +208,13 @@ function formatTodayMessage(data) {
 
 function formatWeekMessage(data) {
     const now = moment().tz('Europe/Moscow');
-    const startOfWeek = now.clone().startOf('week').add(1, 'day'); // Понедельник
-    const endOfWeek = now.clone().endOf('week').add(1, 'day'); // Воскресенье
+    // Устанавливаем понедельник как начало недели
+    moment.updateLocale('ru', { week: { dow: 1 } }); // 1 = Понедельник
+    const startOfWeek = now.clone().startOf('week'); // Понедельник
+    const endOfWeek = startOfWeek.clone().add(6, 'days'); // Воскресенье
     const dateRange = `с ${startOfWeek.format('D MMMM')} по ${endOfWeek.format('D MMMM')}`;
 
-   
+    
     let message = `*Топ Курьеров за неделю ${dateRange}*\n*Парки Народный и Luxury courier*\n\n`;
     message += `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
 
