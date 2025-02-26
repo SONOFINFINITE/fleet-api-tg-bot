@@ -206,7 +206,7 @@ function formatTodayMessage(data) {
         message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
         
         if (index !== data.topList.length - 1) {
-            message += '--------------------------------------------------------\n';
+            message += '-----------------------------------\n';
         }
     });
 
@@ -235,7 +235,7 @@ function formatWeekMessage(data) {
         message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
         
         if (index !== data.topList.length - 1) {
-            message += '--------------------------------------------------------\n';
+            message += '-----------------------------------\n';
         }
     });
 
@@ -262,7 +262,7 @@ function formatYesterdayMessage(data) {
         message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
         
         if (index !== data.topList.length - 1) {
-            message += '--------------------------------------------------------\n';
+            message += '-----------------------------------\n';
         }
     });
 
