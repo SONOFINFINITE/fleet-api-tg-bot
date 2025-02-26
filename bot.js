@@ -138,38 +138,44 @@ function getAllowedChatIds() {
 async function fetchTopDrivers(endpoint) {
     try {
         log(`Запрос данных для endpoint: ${endpoint}`);
-        const [topResponse, weekResponse, yesterdayResponse] = await Promise.all([
+        const [topResponse, weekResponse, monthlyResponse] = await Promise.all([
             fetch(`https://fleet-api-server.onrender.com/top/money/${endpoint}`),
             fetch(`https://fleet-api-server.onrender.com/top/money/week`),
             fetch(`https://fleet-api-server.onrender.com/monthlybonus`)
         ]);
         
-        log(`Статус ответа top: ${topResponse.status}, week: ${weekResponse.status}`);
+        log(`Статус ответа top: ${topResponse.status}, week: ${weekResponse.status}, monthly: ${monthlyResponse.status}`);
         // Проверяем статус ответов
-        if (!topResponse.ok || !weekResponse.ok) {
-            throw new Error(`HTTP error! status: ${topResponse.status}, ${weekResponse.status}`);
+        if (!topResponse.ok || !weekResponse.ok || !monthlyResponse.ok) {
+            throw new Error(`HTTP error! status: ${topResponse.status}, ${weekResponse.status}, ${monthlyResponse.status}`);
         }
         
         // Получаем текст ответов
-        const [topText, weekText] = await Promise.all([
+        const [topText, weekText, monthlyText] = await Promise.all([
             topResponse.text(),
-            weekResponse.text()
+            weekResponse.text(),
+            monthlyResponse.text()
         ]);
         
         try {
             // Пытаемся распарсить JSON
             const topData = JSON.parse(topText);
             const weekData = JSON.parse(weekText);
+            const monthlyData = JSON.parse(monthlyText);
             
-            // Если запрашиваем недельные данные, возвращаем их как есть
+            // Если запрашиваем недельные данные, возвращаем их как есть с месячным бонусом
             if (endpoint === 'week') {
-                return topData;
+                return {
+                    ...topData,
+                    monthlyBonus: monthlyData.monthlyBonus
+                };
             }
             
-            // Для дневных данных добавляем недельный бонус
+            // Для дневных данных добавляем недельный и месячный бонусы
             return {
                 ...topData,
-                weeklyBonusSum: weekData.weeklyBonusSum
+                weeklyBonusSum: weekData.weeklyBonusSum,
+                monthlyBonus: monthlyData.monthlyBonus
             };
         } catch (e) {
             log(`Ошибка парсинга JSON. Ответ сервера: ${topText}`, true);
@@ -344,7 +350,6 @@ const todayStatsSchedules = [
 ];
 const yesterdayStatsSchedules = [
     '15 5 * * *',  // 08:05 MSK
-    '00 21 * * *', // 0:00 MSK
 
 ];
 log('Настройка расписания отправки статистики (UTC -> MSK):');
