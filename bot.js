@@ -250,7 +250,7 @@ function formatYesterdayMessage(data) {
 
     let message = `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`;
     message += `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
-    message += `*Месячный бонус: ${data.monthlyBonus}₽*\n\n`;
+    message += `*Месячный бонус: ${data.monthlyBonus}*\n\n`;
 
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
