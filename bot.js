@@ -138,25 +138,40 @@ function getAllowedChatIds() {
 async function fetchTopDrivers(endpoint) {
     try {
         log(`Запрос данных для endpoint: ${endpoint}`);
-        const response = await fetch(`https://fleet-api-server.onrender.com/top/money/${endpoint}`);
+        const [topResponse, weekResponse] = await Promise.all([
+            fetch(`https://fleet-api-server.onrender.com/top/money/${endpoint}`),
+            fetch(`https://fleet-api-server.onrender.com/top/money/week`)
+        ]);
         
-        log(`Статус ответа: ${response.status}`);
-        // Проверяем статус ответа
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        log(`Статус ответа top: ${topResponse.status}, week: ${weekResponse.status}`);
+        // Проверяем статус ответов
+        if (!topResponse.ok || !weekResponse.ok) {
+            throw new Error(`HTTP error! status: ${topResponse.status}, ${weekResponse.status}`);
         }
         
-        // Получаем текст ответа для логирования в случае ошибки
-        const text = await response.text();
-        log(`Получен ответ длиной ${text.length} символов`);
+        // Получаем текст ответов
+        const [topText, weekText] = await Promise.all([
+            topResponse.text(),
+            weekResponse.text()
+        ]);
         
         try {
             // Пытаемся распарсить JSON
-            const data = JSON.parse(text);
-            log(`Успешно получены данные: ${data.length} записей`);
-            return data;
+            const topData = JSON.parse(topText);
+            const weekData = JSON.parse(weekText);
+            
+            // Если запрашиваем недельные данные, возвращаем их как есть
+            if (endpoint === 'week') {
+                return topData;
+            }
+            
+            // Для дневных данных добавляем недельный бонус
+            return {
+                ...topData,
+                weeklyBonusSum: weekData.weeklyBonusSum
+            };
         } catch (e) {
-            log(`Ошибка парсинга JSON. Ответ сервера: ${text}`, true);
+            log(`Ошибка парсинга JSON. Ответ сервера: ${topText}`, true);
             return null;
         }
     } catch (error) {
@@ -196,8 +211,9 @@ function formatWeekMessage(data) {
     const endOfWeek = now.clone().endOf('week').add(1, 'day'); // Воскресенье
     const dateRange = `с ${startOfWeek.format('D MMMM')} по ${endOfWeek.format('D MMMM')}`;
 
-    let message = `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
-    message += `*Топ Курьеров за неделю ${dateRange}*\n*Парки Народный и Luxury courier*\n\n`;
+   
+    let message = `*Топ Курьеров за неделю ${dateRange}*\n*Парки Народный и Luxury courier*\n\n`;
+    message += `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
 
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
@@ -222,8 +238,8 @@ function formatYesterdayMessage(data) {
     const dateStr = date.format('D MMMM YYYY');
     const timeStr = now.format('HH:mm');
 
-    let message = `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
-    message += `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`;
+    let message = `*Топ Курьеров за ${dateStr}*\n*Парки Народный и Luxury courier*\n\n`;
+    message += `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
 
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
