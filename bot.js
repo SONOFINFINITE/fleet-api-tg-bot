@@ -193,9 +193,9 @@ function formatTodayMessage(data) {
     const timeStr = now.format('HH:mm');
 
     
-    let message = `*👍 Курьеров за ${dateStr} [${timeStr}]*\n*Парки Народный и Luxury courier*\n\n`;
-    message += `*Недельный бонус: ${data.weeklyBonusSum}₽*\n\n`;
-    message += `*Месячный бонус: ${data.monthlyBonus}*\n\n`;
+    let message = `*🔝 Курьеров за ${dateStr} [${timeStr}]*\n*🏆Парки: Народный и Luxury courier🏆*\n\n`;
+    message += `*Недельный бонус: ${data.weeklyBonusSum}₽ 😎*\n\n`;
+    message += `*Месячный бонус: ${data.monthlyBonus}🤑*\n\n`;
     data.topList.forEach((driver, index) => {
         const driverId = driver.phone.slice(-5);
         const hours = Number(driver.hours.replace(',', '.')) || 0;
@@ -208,6 +208,7 @@ function formatTodayMessage(data) {
         if (index !== data.topList.length - 1) {
             message += '-----------------------------------\n';
         }
+        message += `*Хочешь попасть в этот топ и забрать бонус? Пиши @lchelp_bot (https://t.me/lchelp_bot)*\n`;
     });
 
     return message;
