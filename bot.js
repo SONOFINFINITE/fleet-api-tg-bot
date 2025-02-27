@@ -193,7 +193,7 @@ function formatTodayMessage(data) {
     const timeStr = now.format('HH:mm');
 
     
-    let message = `*🔝 Курьеров за ${dateStr} [${timeStr}]*\n*🏆Парки: Народный и Luxury courier🏆*\n\n`;
+    let message = `*🔝 Курьеров за ${dateStr} [${timeStr}]*\n*🏆Парки: Народный и Luxury Courier🏆*\n\n`;
     message += `*Недельный бонус: ${data.weeklyBonusSum}₽ 😎*\n\n`;
     message += `*Месячный бонус: ${data.monthlyBonus}🤑*\n\n`;
     data.topList.forEach((driver, index) => {
@@ -224,7 +224,7 @@ function formatWeekMessage(data) {
     const dateRange = `с ${startOfWeek.format('D MMMM')} по ${endOfWeek.format('D MMMM')}`;
 
     
-    let message = `*🔝 Курьеров за неделю ${dateRange}*\n*🏆Парки: Народный и Luxury courier🏆*\n\n`;
+    let message = `*🔝 Курьеров за неделю ${dateRange}*\n*🏆Парки: Народный и Luxury Courier🏆*\n\n`;
     message += `*Недельный бонус: ${data.weeklyBonusSum}₽ 😎*\n\n`;
 
     data.topList.forEach((driver, index) => {
@@ -251,7 +251,7 @@ function formatYesterdayMessage(data) {
     const dateStr = date.format('D MMMM YYYY');
     const timeStr = now.format('HH:mm');
 
-    let message = `*🔝 Курьеров за ${dateStr}*\n*🏆Парки: Народный и Luxury courier🏆*\n\n`;
+    let message = `*🔝 Курьеров за ${dateStr}*\n*🏆Парки: Народный и Luxury Courier🏆*\n\n`;
     message += `*Недельный бонус: ${data.weeklyBonusSum}₽ 😎*\n\n`;
     message += `*Месячный бонус: ${data.monthlyBonus}🤑*\n\n`;
 
