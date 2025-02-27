@@ -210,6 +210,7 @@ function formatTodayMessage(data) {
         }
      
     });
+    message+="\n"
     message += `*Хочешь попасть в этот топ и забрать бонус? Пиши @lchelp_bot*\n`;
     return message;
 }
