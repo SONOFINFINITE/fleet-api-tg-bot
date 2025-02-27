@@ -208,9 +208,9 @@ function formatTodayMessage(data) {
         if (index !== data.topList.length - 1) {
             message += '-----------------------------------\n';
         }
-        message += `*Хочешь попасть в этот топ и забрать бонус? Пиши @lchelp_bot (https://t.me/lchelp_bot)*\n`;
+     
     });
-
+    message += `*Хочешь попасть в этот топ и забрать бонус? Пиши @lchelp_bot*\n`;
     return message;
 }
 
