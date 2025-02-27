@@ -382,25 +382,34 @@ yesterdayStatsSchedules.forEach(cronTime => {
     }
 });
 
+// Функция для проверки прав администратора в группе
+async function isAdminInGroup(ctx) {
+    // Если это не групповой чат с указанным ID, возвращаем true
+    if (ctx.chat.id !== -1002353039022) {
+        return true;
+    }
+    
+    try {
+        // Получаем информацию о пользователе в чате
+        const member = await ctx.getChatMember(ctx.from.id);
+        // Проверяем, является ли пользователь администратором или создателем
+        return ['administrator', 'creator'].includes(member.status);
+    } catch (error) {
+        log(`Ошибка при проверке прав администратора: ${error.message}`, true);
+        return false;
+    }
+}
+
 // Обработчик команды /start
 bot.command('start', async (ctx) => {
-    const chatId = ctx.chat.id;
-    const allowedChatIds = getAllowedChatIds();
-
-    if (allowedChatIds.includes(chatId)) {
-        await ctx.reply('Добро пожаловать! Используйте команды /tday для статистики за сегодня и /yday для статистики за вчера.');
-    } else {
-        await ctx.reply('У вас нет доступа к этому боту.');
-    }
+    await ctx.reply('Добро пожаловать! Используйте команды /tday для статистики за сегодня, /yday для статистики за вчера и /week для статистики за неделю.');
 });
 
 // Обработчик команды /tday (статистика за сегодня)
 bot.command('tday', async (ctx) => {
-    const chatId = ctx.chat.id;
-    const allowedChatIds = getAllowedChatIds();
-
-    if (!allowedChatIds.includes(chatId)) {
-        await ctx.reply('У вас нет доступа к этой функции.');
+    // Проверяем права администратора для групповых чатов
+    if (ctx.chat.type !== 'private' && !(await isAdminInGroup(ctx))) {
+        await ctx.reply('В этой группе команда доступна только администраторам.');
         return;
     }
 
@@ -420,11 +429,9 @@ bot.command('tday', async (ctx) => {
 
 // Обработчик команды /yday (статистика за вчера)
 bot.command('yday', async (ctx) => {
-    const chatId = ctx.chat.id;
-    const allowedChatIds = getAllowedChatIds();
-
-    if (!allowedChatIds.includes(chatId)) {
-        await ctx.reply('У вас нет доступа к этой функции.');
+    // Проверяем права администратора для групповых чатов
+    if (ctx.chat.type !== 'private' && !(await isAdminInGroup(ctx))) {
+        await ctx.reply('В этой группе команда доступна только администраторам.');
         return;
     }
 
@@ -443,11 +450,9 @@ bot.command('yday', async (ctx) => {
 });
 
 bot.command('week', async (ctx) => {
-    const chatId = ctx.chat.id;
-    const allowedChatIds = getAllowedChatIds();
-
-    if (!allowedChatIds.includes(chatId)) {
-        await ctx.reply('У вас нет доступа к этой функции.');
+    // Проверяем права администратора для групповых чатов
+    if (ctx.chat.type !== 'private' && !(await isAdminInGroup(ctx))) {
+        await ctx.reply('В этой группе команда доступна только администраторам.');
         return;
     }
 
