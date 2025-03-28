@@ -273,6 +273,33 @@ function formatYesterdayMessage(data) {
     return message;
 }
 
+function formatMonthMessage(data) {
+    const now = moment().tz('Europe/Moscow');
+    const startOfMonth = now.clone().startOf('month');
+    const endOfMonth = now.clone().endOf('month');
+    const monthName = now.format('MMMM YYYY');
+
+    let message = `*🔝 Курьеров за месяц ${monthName}*\n*🏆Парки: Народный и Luxury Courier🏆*\n\n`;
+    message += `*Месячный бонус: ${data.monthlyBonus}🤑*\n\n`;
+
+    data.topList.forEach((driver, index) => {
+        const driverId = driver.phone.slice(-5);
+        const hours = Number(driver.hours.replace(',', '.')) || 0;
+        const money = Number(driver.money) || 0;
+        const orders = Number(driver.orders) || 0;
+        const hourlyRate = hours > 0 ? Math.round(money / hours) : 0;
+
+        message += `${index + 1}. Т79.${driverId} -${orders}з -${hours.toFixed(1)} ч -${money}₽ -${hourlyRate} ₽/ч\n`;
+        
+        if (index !== data.topList.length - 1) {
+            message += '-----------------------------------\n';
+        }
+    });
+    message+="\n"
+    message += `*Хочешь попасть в этот топ и забрать бонус? Пиши @lchelp_bot*\n`;
+    return message;
+}
+
 async function sendTodayStatistics() {
     log('Начало отправки статистики');
     const data = await fetchTopDrivers('today');
@@ -345,6 +372,30 @@ async function sendWeekStatistics() {
     }
 }
 
+async function sendMonthStatistics() {
+    log('Начало отправки месячной статистики');
+    const data = await fetchTopDrivers('month');
+    if (data) {
+        const message = formatMonthMessage(data);
+        const allowedChatIds = getAllowedChatIds();
+        log(`Отправка месячной статистики ${allowedChatIds.length} получателям`);
+        
+        for (const chatId of allowedChatIds) {
+            try {
+                log(`Отправка сообщения в чат ${chatId}`);
+                await bot.api.sendMessage(chatId, message, { 
+                    parse_mode: 'Markdown'
+                });
+                log(`Сообщение успешно отправлено в чат ${chatId}`);
+            } catch (error) {
+                log(`Ошибка при отправке сообщения в чат ${chatId}: ${error.message}`, true);
+            }
+        }
+    } else {
+        log('Нет данных для отправки месячной статистики', true);
+    }
+}
+
 // Настройка расписания (время UTC для соответствия МСК)
 const todayStatsSchedules = [
     '00 6 * * *',  // 08:05 MSK
@@ -354,8 +405,16 @@ const todayStatsSchedules = [
 ];
 const yesterdayStatsSchedules = [
     '00 5 * * *',  // 08:05 MSK
-
 ];
+// Расписание для недельного отчета (18:30 UTC каждое воскресенье = 21:30 MSK)
+const weekStatsSchedules = [
+    '30 18 * * 0',  // 21:30 MSK воскресенье
+];
+// Расписание для месячного отчета (18:30 UTC последний день месяца = 21:30 MSK)
+const monthStatsSchedules = [
+    '30 18 L * *',  // 21:30 MSK последний день месяца
+];
+
 log('Настройка расписания отправки статистики (UTC -> MSK):');
 todayStatsSchedules.forEach(cronTime => {
     log(`Добавлено расписание UTC: ${cronTime} (MSK: +3 часа)`);
@@ -386,6 +445,38 @@ yesterdayStatsSchedules.forEach(cronTime => {
     }
 });
 
+// Добавляем расписание для недельных отчетов
+weekStatsSchedules.forEach(cronTime => {
+    log(`Добавлено расписание для недельного отчета UTC: ${cronTime} (MSK: +3 часа)`);
+    const job = schedule.scheduleJob(cronTime, () => {
+        log(`Запуск отправки недельной статистики по расписанию: ${cronTime} UTC`);
+        sendWeekStatistics();
+    });
+    if (job) {
+        const nextUTC = job.nextInvocation();
+        const nextMSK = moment(nextUTC).tz('Europe/Moscow').format('YYYY-MM-DD HH:mm:ss');
+        log(`Следующий запуск недельного отчета для ${cronTime}: UTC=${nextUTC}, MSK=${nextMSK}`);
+    } else {
+        log(`Ошибка при создании расписания для недельного отчета ${cronTime}`, true);
+    }
+});
+
+// Добавляем расписание для месячных отчетов
+monthStatsSchedules.forEach(cronTime => {
+    log(`Добавлено расписание для месячного отчета UTC: ${cronTime} (MSK: +3 часа)`);
+    const job = schedule.scheduleJob(cronTime, () => {
+        log(`Запуск отправки месячной статистики по расписанию: ${cronTime} UTC`);
+        sendMonthStatistics();
+    });
+    if (job) {
+        const nextUTC = job.nextInvocation();
+        const nextMSK = moment(nextUTC).tz('Europe/Moscow').format('YYYY-MM-DD HH:mm:ss');
+        log(`Следующий запуск месячного отчета для ${cronTime}: UTC=${nextUTC}, MSK=${nextMSK}`);
+    } else {
+        log(`Ошибка при создании расписания для месячного отчета ${cronTime}`, true);
+    }
+});
+
 // Функция для проверки прав администратора в группе
 async function isAdminInGroup(ctx) {
     // Если это не групповой чат с указанным ID, возвращаем true
@@ -406,7 +497,7 @@ async function isAdminInGroup(ctx) {
 
 // Обработчик команды /start
 bot.command('start', async (ctx) => {
-    await ctx.reply('Добро пожаловать! Используйте команды /tday для статистики за сегодня, /yday для статистики за вчера и /week для статистики за неделю.');
+    await ctx.reply('...')
 });
 
 // Обработчик команды /tday (статистика за сегодня)
@@ -464,6 +555,27 @@ bot.command('week', async (ctx) => {
         const data = await fetchTopDrivers('week');
         if (data) {
             const message = formatWeekMessage(data);
+            await ctx.reply(message, { parse_mode: 'Markdown' });
+        } else {
+            await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.');
+        }
+    } catch (error) {
+        console.error('Ошибка при обработке запроса статистики:', error);
+        await ctx.reply('Произошла ошибка при получении статистики. Пожалуйста, попробуйте позже.');
+    }
+});
+
+bot.command('month', async (ctx) => {
+    // Проверяем права администратора для групповых чатов
+    if (ctx.chat.type !== 'private' && !(await isAdminInGroup(ctx))) {
+        await ctx.reply('В этой группе команда доступна только администраторам.');
+        return;
+    }
+
+    try {
+        const data = await fetchTopDrivers('month');
+        if (data) {
+            const message = formatMonthMessage(data);
             await ctx.reply(message, { parse_mode: 'Markdown' });
         } else {
             await ctx.reply('Извините, сервер статистики временно недоступен. Попробуйте через несколько минут.');
